@@ -23,7 +23,7 @@ declare module 'shift-refactor' {
 
 const debug = DEBUG('shift-refactor:plugin:common');
 
-export default function commonMethods() {
+export function commonMethods() {
   return {
     debug(this: RefactorSessionChainable) {
       const injectIntoBody = (body: FunctionBody) => {
