@@ -3,22 +3,27 @@ import {
   BindingIdentifier,
   DebuggerStatement,
   FormalParameters,
+  ObjectBinding,
+  ArrayBinding,
+  BindingWithDefault,
+  BindingPropertyIdentifier,
+  AssignmentTargetIdentifier,
   FunctionBody,
+  Node,
   IdentifierExpression,
   LiteralBooleanExpression,
-  Node,
   ReturnStatement,
   StaticMemberAssignmentTarget,
   StaticMemberExpression,
   StaticPropertyName,
 } from 'shift-ast';
-import {isLiteral, RefactorSessionChainable} from 'shift-refactor';
-import {Declaration, Reference, Scope} from 'shift-scope';
-import {default as isValid} from 'shift-validator';
-import {BaseIdGenerator, MemorableIdGenerator} from './id-generator/id-generator';
+import { isLiteral, RefactorSessionChainable } from 'shift-refactor';
+import { Declaration, Reference, Scope } from 'shift-scope';
+import { default as isValid } from 'shift-validator';
+import { BaseIdGenerator, MemorableIdGenerator } from './id-generator/id-generator';
 
 declare module 'shift-refactor' {
-  interface RefactorSessionChainable extends ReturnType<typeof commonMethods> {}
+  interface RefactorSessionChainable extends ReturnType<typeof commonMethods> { }
 }
 
 const debug = DEBUG('shift-refactor:plugin:common');
@@ -52,7 +57,7 @@ export function commonMethods() {
                 node.body,
                 new FunctionBody({
                   directives: [],
-                  statements: [new DebuggerStatement(), new ReturnStatement({expression: node.body})],
+                  statements: [new DebuggerStatement(), new ReturnStatement({ expression: node.body })],
                 }),
               );
             } else {
@@ -153,11 +158,11 @@ export function commonMethods() {
     expandBoolean(this: RefactorSessionChainable) {
       this.session.replace(
         `UnaryExpression[operator="!"][operand.value=0]`,
-        () => new LiteralBooleanExpression({value: true}),
+        () => new LiteralBooleanExpression({ value: true }),
       );
       this.session.replace(
         `UnaryExpression[operator="!"][operand.value=1]`,
-        () => new LiteralBooleanExpression({value: false}),
+        () => new LiteralBooleanExpression({ value: false }),
       );
       return this.session.globalSession.conditionalCleanup();
     },
@@ -179,9 +184,15 @@ function renameScope(scope: Scope, idGenerator: BaseIdGenerator, parentMap: Weak
       const isParam = variable.declarations.find(_ => _.type.name === 'Parameter');
       let newName = `$$${nextId}`;
       if (isParam) {
-        const parent = parentMap.get(isParam.node) as FormalParameters;
-        const position = parent.items.indexOf(isParam.node as BindingIdentifier);
-        newName = `$arg${position}_${nextId}`;
+        type ParamBindingParent = BindingWithDefault | ArrayBinding | ObjectBinding | BindingIdentifier;
+        for (let parent: Node, node = isParam.node as ParamBindingParent; parentMap.has(node); node = parent) {
+          parent = parentMap.get(node) as FormalParameters | ParamBindingParent;
+          if (parent.type==="FormalParameters") {
+            const position = parent.items.indexOf(node);
+            newName = `$arg${position}_${nextId}`;
+            break;
+          }
+        }
       }
       variable.declarations.forEach(_ => (_.node.name = newName));
       variable.references.forEach(_ => (_.node.name = newName));
