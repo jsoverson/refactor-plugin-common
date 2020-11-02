@@ -12,7 +12,7 @@ $ npm install refactor-plugin-common
 
 ```js
 const {refactor} = require('shift-refactor');
-const commonMethods = require('refactor-plugin-common');
+const {commonMethods} = require('refactor-plugin-common');
 
 const src = `/* js source */`;
 

@@ -17,6 +17,16 @@ describe('plugin-common', () => {
         parse(`const arst=1; var aiai; function foie($arg0_${second}){const $$${first}=2;$$${first}++};foie();`),
       );
     });
+    it('should not throw an Error on any types of parameters', () => {
+      let ast=parse(`(function (w,x=1,{y},[z]) {})`);
+      const gen=new MemorableIdGenerator(10);
+      const paramNames=[gen.next().value,gen.next().value,gen.next().value,gen.next().value];
+      const $script = refactor(ast, commonMethods);
+      $script.normalizeIdentifiers(10);
+      expect($script.raw()).to.deep.equal(
+        parse(`(function ($arg0_${paramNames[0]},$arg1_${paramNames[1]}=1,{$arg2_${paramNames[2]}},[$arg3_${paramNames[3]}]) {})`),
+      );
+    });
     it('should not change global vars', () => {
       let ast = parse(`(function(){const zzzz=1; console.log(zzzz)})`);
       const gen = new MemorableIdGenerator(10);
